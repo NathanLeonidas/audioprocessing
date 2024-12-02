@@ -15,18 +15,14 @@ def pad2n(x):
 
 
 def fft_padded(x):
-    # Nombre d'échantillons
     N = len(x)
     
-    # Cas de base : si la taille du signal est 1, renvoyer le signal lui-même
     if N <= 1:
         return x
     
-    # Découper le signal en deux (partie impaire et paire)
-    even = fft_padded(x[0::2])  # Composantes paires
-    odd = fft_padded(x[1::2])   # Composantes impaires
+    even = fft_padded(x[0::2])  
+    odd = fft_padded(x[1::2])   
     
-    # Calcul des racines de l'unité (utilisation de la formule de la FFT)
     T = [cmath.exp(-2j*np.pi*i/N)*odd[i] for i in range(N//2)]
 
     return [even[i]+T[i] for i in range(N//2)] + [even[i]-T[i] for i in range(N//2)]
@@ -49,11 +45,10 @@ def fft(x,T):
 
 
 
-#
+
 # Exemple d'utilisation :
-  # Nombre d'échantillons
-T = 1/samplerate  # Période d'échantillonnage
-x=data[:40000]
+T = 1/samplerate
+x=data[40000:80000]
 
 
 
@@ -79,41 +74,3 @@ plt.ylabel("Amplitude")
 plt.tight_layout()
 plt.show()
 
-
-# Trouver la fréquence fondamentale
-def find_fundamental_frequency(spectre, frequencies):
-    magnitude = np.abs(spectre)
-    index_max = np.argmax(magnitude)
-    fundamental_frequency = frequencies[index_max]
-    return fundamental_frequency
-
-
-
-
-# Paramètres
-window_size = 1024  # Taille de la fenêtre en échantillons
-hop_size = 512  # Décalage entre les fenêtres (en échantillons)
-fundamental_frequencies = []
-x=data
-
-for start in range(0, len(x) - window_size, hop_size):
-    end = start + window_size
-    window = x[start:end]
-    
-    # Calcul de la FFT et des fréquences
-    spectre, frequencies = fft(window, T)
-    
-    # Calcul de la fondamentale
-    fundamental_frequency = find_fundamental_frequency(spectre, frequencies)
-    fundamental_frequencies.append(fundamental_frequency)
-
-# Affichage de la fondamentale au fil du temps
-times = np.arange(0, len(fundamental_frequencies)) * (hop_size / samplerate)
-
-plt.figure(figsize=(10, 6))
-plt.plot(times, fundamental_frequencies)
-plt.title("Fréquence Fondamentale au Fil du Temps")
-plt.xlabel("Temps (s)")
-plt.ylabel("Fréquence fondamentale (Hz)")
-plt.tight_layout()
-plt.show()
