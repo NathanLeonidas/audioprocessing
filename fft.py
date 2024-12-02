@@ -35,22 +35,35 @@ def fft_padded(x):
 def fftfreq(n,t):
     return [i/(n*t) for i in range(n//2)]+[i/(n*t) for i in range(-n//2,0)]
 
+
+def fft(x,T):
+    #where x isn't padded size 2**n
+    x=pad2n(x)
+    full_spectre = fft_padded(x)
+    spectre = full_spectre[:len(full_spectre)//2]
+    N = len(x)
+    full_frequencies = fftfreq(N,T)
+    frequencies = full_frequencies[:N//2]
+    return spectre, frequencies
+
+
+
+
+#
 # Exemple d'utilisation :
   # Nombre d'échantillons
 T = 1/samplerate  # Période d'échantillonnage
 x=data[:4000]
-x=pad2n(x)
-N = len(x)
-print(T,N)
+
+
+
 
 
 # Normaliser le signal pour faciliter l'affichage
 x = np.array(x, dtype=np.float32)
 x = x / np.max(np.abs(x))  # Normalisation du signal
 
-# Appliquer la FFT sur le signal
-X = fft_padded(x)
-frequencies = fftfreq(N, T)
+spectre, frequencies = fft(x,T)
 
 # Affichage des résultats
 plt.figure(figsize=(10, 6))
@@ -58,12 +71,12 @@ plt.figure(figsize=(10, 6))
 print("si")
 # Affichage du signal d'origine
 plt.subplot(2, 1, 1)
-plt.plot(np.arange(N) * T, x[:N])  # Afficher une partie du signal
+plt.plot(np.arange(len(x)) * T, x)  # Afficher une partie du signal
 plt.title("Signal Original Normalisé")
 
 # Affichage de la magnitude de la FFT
 plt.subplot(2, 1, 2)
-plt.bar(frequencies, np.abs(X))
+plt.bar(frequencies, np.abs(spectre))
 plt.title("Magnitude de la FFT")
 plt.xlabel("Fréquence (Hz)")
 plt.ylabel("Amplitude")
