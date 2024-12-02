@@ -53,7 +53,7 @@ def fft(x,T):
 # Exemple d'utilisation :
   # Nombre d'échantillons
 T = 1/samplerate  # Période d'échantillonnage
-x=data[:4000]
+x=data[:40000]
 
 
 
@@ -61,25 +61,59 @@ x=data[:4000]
 
 # Normaliser le signal pour faciliter l'affichage
 x = np.array(x, dtype=np.float32)
-x = x / np.max(np.abs(x))  # Normalisation du signal
-
+#x = x / np.max(np.abs(x))
 spectre, frequencies = fft(x,T)
 
-# Affichage des résultats
-plt.figure(figsize=(10, 6))
-
-print("si")
 # Affichage du signal d'origine
+plt.figure(figsize=(10, 6))
 plt.subplot(2, 1, 1)
 plt.plot(np.arange(len(x)) * T, x)  # Afficher une partie du signal
 plt.title("Signal Original Normalisé")
 
 # Affichage de la magnitude de la FFT
 plt.subplot(2, 1, 2)
-plt.bar(frequencies, np.abs(spectre))
+plt.bar(frequencies, np.abs(spectre), color='red')
 plt.title("Magnitude de la FFT")
 plt.xlabel("Fréquence (Hz)")
 plt.ylabel("Amplitude")
+plt.tight_layout()
+plt.show()
 
+
+# Trouver la fréquence fondamentale
+def find_fundamental_frequency(spectre, frequencies):
+    magnitude = np.abs(spectre)
+    index_max = np.argmax(magnitude)
+    fundamental_frequency = frequencies[index_max]
+    return fundamental_frequency
+
+
+
+
+# Paramètres
+window_size = 1024  # Taille de la fenêtre en échantillons
+hop_size = 512  # Décalage entre les fenêtres (en échantillons)
+fundamental_frequencies = []
+x=data
+
+for start in range(0, len(x) - window_size, hop_size):
+    end = start + window_size
+    window = x[start:end]
+    
+    # Calcul de la FFT et des fréquences
+    spectre, frequencies = fft(window, T)
+    
+    # Calcul de la fondamentale
+    fundamental_frequency = find_fundamental_frequency(spectre, frequencies)
+    fundamental_frequencies.append(fundamental_frequency)
+
+# Affichage de la fondamentale au fil du temps
+times = np.arange(0, len(fundamental_frequencies)) * (hop_size / samplerate)
+
+plt.figure(figsize=(10, 6))
+plt.plot(times, fundamental_frequencies)
+plt.title("Fréquence Fondamentale au Fil du Temps")
+plt.xlabel("Temps (s)")
+plt.ylabel("Fréquence fondamentale (Hz)")
 plt.tight_layout()
 plt.show()
