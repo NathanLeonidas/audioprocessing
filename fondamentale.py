@@ -10,7 +10,7 @@ T = 1 / samplerate
 
 # Paramètres
 window_size = 2048  # Taille de la fenêtre en échantillons
-hop_size = 512  # Décalage entre les fenêtres (en échantillons)
+hop_size = window_size // 2  # Décalage entre les fenêtres (en échantillons)
 Fmin = librosa.note_to_hz('C4')
 Fmax = librosa.note_to_hz('C6')
 
