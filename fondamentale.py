@@ -4,20 +4,6 @@ import matplotlib.pyplot as plt
 import librosa
 import pandas as pd
 
-# Chargement du fichier audio
-data, samplerate = sf.read('D:\\Ecole\\CS\\METZ2A\\Traitement audio\\audioprocessing\\audio_files\\fluteircam.wav')
-x = data
-T = 1 / samplerate
-
-# Paramètres
-window_size = 0.02  # Taille de la fenêtre en secondes
-hop_size = 0.01  # Décalage entre les fenêtres (en secondes)
-Fmin = librosa.note_to_hz('C4')
-Fmax = librosa.note_to_hz('C6')
-
-#conversion en nbre d'échantillons
-window_size = int(window_size / T)
-hop_size = int(hop_size / T)
 
 # Fonction pour détecter la fréquence fondamentale avec FFT
 def naive_fft_fundamental(signal, samplerate, window_size, hop_size, treshold):
@@ -80,56 +66,29 @@ def autocorrelation_fundamental(signal, samplerate, window_size, hop_size, fmin,
     return np.array(times), np.array(f0)
 
 
-# Fonction pour calculer YIN (qui se base sur l'autocorrélation)
-def yin(signal, samplerate, window_size, hop_size, fmin, fmax, threshold=0.6):
-    def difference_function(x, W):
-        """Calcul de la fonction de différence cumulée."""
-        diff = np.zeros(W)
-        for tau in range(W):
-            diff[tau] = np.sum((x[:W - tau] - x[tau:W]) ** 2)
-        return diff
-
-    def cumulative_mean_normalized_difference(d):
-        """Normalisation cumulative de la fonction de différence."""
-        cmnd = np.zeros_like(d)
-        cmnd[0] = 1  # Éviter les divisions par zéro
-        running_sum = 0
-        for tau in range(1, len(d)):
-            running_sum += d[tau]
-            cmnd[tau] = d[tau] / (running_sum / tau)
-        return cmnd
-
-    def find_fundamental_frequency(cmnd, samplerate, fmin, fmax, threshold):
-        """Détecte la fréquence fondamentale à partir du minimum local."""
-        Tmin = int(samplerate / fmax)
-        Tmax = int(samplerate / fmin)
-        for tau in range(Tmin, min(len(cmnd), Tmax)):
-            if cmnd[tau] < threshold and cmnd[tau] < cmnd[tau - 1] and cmnd[tau] < cmnd[tau + 1]:
-                return samplerate / tau  # Fréquence fondamentale
-        return 0  # Retourne 0 si aucune fréquence fondamentale trouvée
-
-    f0 = []
-    times = []
-    for start in range(0, len(signal) - window_size, hop_size):
-        end = start + window_size
-        window = signal[start:end]
-        diff = difference_function(window, window_size)
-        cmnd = cumulative_mean_normalized_difference(diff)
-        freq = find_fundamental_frequency(cmnd, samplerate, fmin, fmax, threshold)
-        f0.append(freq)
-        times.append((start + window_size//2) / samplerate)
-
-    print("calculated YIN")
-    return np.array(times), np.array(f0)
 
 
+# Chargement du fichier audio
+data, samplerate = sf.read('D:\\Ecole\\CS\\METZ2A\\Traitement audio\\audioprocessing\\audio_files\\fluteircam.wav')
+x = data
+T = 1 / samplerate
+
+# Paramètres
+window_size = 0.02# Taille de la fenêtre en secondes
+hop_size = 0.01  # Décalage entre les fenêtres (en secondes)
+Fmin = librosa.note_to_hz('C4')
+Fmax = librosa.note_to_hz('C6')
+
+#conversion en nbre d'échantillons
+window_size = int(window_size / T)
+hop_size = int(hop_size / T)
 
 # Calcul avec chaque méthode:
-#fft naive (max des pics de fréquence), autoccrélation, YIN, puis librairie python déjà existante
+#fft naive (max des pics de fréquence), autoccrélation
 treshold = 0.002
 times, f0_fft = naive_fft_fundamental(x, samplerate, window_size, hop_size,treshold)
 times, f0_autocorr = autocorrelation_fundamental(x, samplerate, window_size, hop_size, Fmin, Fmax,treshold)
-#times, f0_yin = yin(x, samplerate, window_size, hop_size, Fmin, Fmax)
+
 
 #récupération des vraies valeurs
 filepath = 'D:\\Ecole\\CS\\METZ2A\\Traitement audio\\audioprocessing\\documentation_cours\\veriteterrainflute.txt'
@@ -147,9 +106,13 @@ print(f0_true)
 
 
 
+
+
+
+
+
 # Affichage des résultats
 plt.figure(figsize=(10, 6))
-#plt.plot(times, f0_yin, label="YIN", color="blue")
 plt.plot(times, f0_fft, label='FFT naive', color='green')
 plt.plot(times, f0_autocorr, label='Autocorrélation', color='purple')
 plt.plot(times, f0_true, label='Valeurs données', color='black')
@@ -159,3 +122,12 @@ plt.ylabel("Fréquence fondamentale (Hz)")
 plt.legend()
 plt.tight_layout()
 plt.show()
+
+n=len(f0_autocorr)
+print('erreur moyenne L1 de la méthode naive FFT:'+str(np.linalg.norm(f0_true - f0_fft, ord=1)/n))
+print('erreur moyenne L2 de la méthode naive FFT:'+str(np.linalg.norm(f0_true - f0_fft, ord=2)/np.sqrt(n)))
+print('erreur moyenne L1 de la méthode par autocorrelation:'+str(np.linalg.norm(f0_true - f0_autocorr, ord=1)/n))
+print('erreur moyenne L2 de la méthode par autocorrelation:'+str(np.linalg.norm(f0_true - f0_autocorr, ord=2)/np.sqrt(n)))
+
+print("On constate que la méthode d'autocorrélation est plus précise.")
+print('En effet, la méthode naive a du mal a détecter les vibratos légers.')
