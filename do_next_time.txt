@@ -1,3 +1,1 @@
-TAille de fenetre en sec pas en echantillons
-Hop lenght indep de window_size
 mettre la frequence fondamentale sur t0 + t1 /2 sur chaque fenetre le début n'est pas opti
