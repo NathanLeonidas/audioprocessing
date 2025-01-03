@@ -1,1 +1,0 @@
-mettre la frequence fondamentale sur t0 + t1 /2 sur chaque fenetre le début n'est pas opti
