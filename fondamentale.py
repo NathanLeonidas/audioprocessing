@@ -77,7 +77,7 @@ T = 1 / samplerate
 window_size = 0.02 # Taille de la fenêtre en secondes
 hop_size = 0.01  # Décalage entre les fenêtres (en secondes)
 treshold = 0.003
-Fmin = librosa.note_to_hz('C4')
+Fmin = librosa.note_to_hz('C3')
 Fmax = librosa.note_to_hz('C6')
 
 #conversion en nbre d'échantillons
@@ -170,3 +170,63 @@ print('erreur moyenne L2 de la méthode par autocorrelation:'+str(np.linalg.norm
 print("On constate que la méthode d'autocorrélation est plus précise.")
 print('En effet, la méthode naive a du mal a détecter les vibratos légers.')
 print('Globalement les deux méthodes sont moins efficaces pour détecter la fondamentale')
+
+
+
+
+
+
+
+Tmin = int(samplerate / Fmax)
+Tmax = int(samplerate / Fmin)
+# Autocorrélogramme
+
+# Initialiser le tableau pour stocker les autocorrélations
+autocorr_matrix = []
+
+# Calculer l'autocorrélation sur chaque fenêtre
+for start in range(0, len(x) - window_size, hop_size):
+    end = start + window_size
+    window = x[start:end]
+    windowed_signal = window * np.hamming(len(window))  # Appliquer une fenêtre de Hamming
+
+    # Calculer l'autocorrélation
+    autocorr = np.correlate(windowed_signal, windowed_signal, mode='full')
+    autocorr = autocorr[len(autocorr)//2:]
+    autocorr = autocorr / np.max(autocorr)
+
+
+    # Ajouter au tableau
+    autocorr_matrix.append(autocorr)
+
+# Convertir la matrice en numpy array
+autocorr_matrix = np.array(autocorr_matrix)
+# Calcul des lags correspondants aux fréquences fondamentales détectées
+lags_detected = samplerate / np.array(f0_autocorr) * T
+lags_detected[f0_autocorr == 0] = 0  # Remplacer les valeurs invalides par 0
+
+
+# Créer l'échelle de temps et de lag pour le spectrogramme
+time_axis = np.arange(len(autocorr_matrix)) * hop_size / samplerate
+lag_axis = np.arange(len(autocorr_matrix[0])) * T
+
+# Afficher le spectrogramme avec les lags superposés
+plt.figure(figsize=(12, 8))
+plt.imshow(
+    autocorr_matrix.T,  # bas en haut
+    extent=[time_axis[0], time_axis[-1], lag_axis[-1], lag_axis[0]],
+    aspect='auto',
+    cmap='viridis',
+    origin='upper'
+)
+plt.colorbar(label='Amplitude normalisée')
+plt.xlabel('Temps (s)')
+plt.ylabel('Lag (s)')
+plt.title('Spectrogramme basé sur l\'autocorrélation (voix)')
+
+# Superposer les lags détectés (éliminer les zéros pour éviter les artefacts)
+plt.scatter(time_axis, lags_detected, color='red', s=10, label='Lags détectés')
+
+plt.legend()
+plt.tight_layout()
+plt.show()
