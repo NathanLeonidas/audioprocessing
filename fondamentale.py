@@ -50,32 +50,33 @@ def autocorrelation_fundamental(signal, samplerate, window_size, hop_size, fmin,
 
             # Trouver le lag du premier maximum local
             lag = np.argmax(autocorr)
+            autocorr[lag]=0
 
             # Calculer la fréquence fondamentale et vérifier qu'elle est dans la plage
-            if lag > 0:
-                fundamental_freq = samplerate / lag
-                if fmin <= fundamental_freq <= fmax:
-                    f0.append(fundamental_freq)
-                else:
-                    f0.append(0)  # Fréquence hors de la plage
+            fundamental_freq = samplerate / lag
+            if fmin <= fundamental_freq <= fmax:
+                f0.append(fundamental_freq)
+            else:
+                f0.append(0)  # Fréquence hors de la plage
         else:
             f0.append(0)  # Aucun pic détecté
 
         times.append((start + window_size//2) / samplerate)
     print("calculated autocorrelation")
-    return np.array(times), np.array(f0)
+    return np.array(times), f0 #np.array(f0)
 
 
 
 
-# Chargement du fichier audio
+# Chargement du fichier audio flute
 data, samplerate = sf.read('D:\\Ecole\\CS\\METZ2A\\Traitement audio\\audioprocessing\\audio_files\\fluteircam.wav')
 x = data
 T = 1 / samplerate
 
 # Paramètres
-window_size = 0.02# Taille de la fenêtre en secondes
+window_size = 0.02 # Taille de la fenêtre en secondes
 hop_size = 0.01  # Décalage entre les fenêtres (en secondes)
+treshold = 0.003
 Fmin = librosa.note_to_hz('C4')
 Fmax = librosa.note_to_hz('C6')
 
@@ -83,12 +84,9 @@ Fmax = librosa.note_to_hz('C6')
 window_size = int(window_size / T)
 hop_size = int(hop_size / T)
 
-# Calcul avec chaque méthode:
-#fft naive (max des pics de fréquence), autoccrélation
-treshold = 0.002
+# Calcul avec chaque méthode
 times, f0_fft = naive_fft_fundamental(x, samplerate, window_size, hop_size,treshold)
 times, f0_autocorr = autocorrelation_fundamental(x, samplerate, window_size, hop_size, Fmin, Fmax,treshold)
-
 
 #récupération des vraies valeurs
 filepath = 'D:\\Ecole\\CS\\METZ2A\\Traitement audio\\audioprocessing\\documentation_cours\\veriteterrainflute.txt'
@@ -103,20 +101,59 @@ for i in times:
 f0_true = np.array(f0_true)
 print(f0_true)
 
-
-
-
-
-
-
-
-
 # Affichage des résultats
 plt.figure(figsize=(10, 6))
+plt.subplot(2,1,1)
 plt.plot(times, f0_fft, label='FFT naive', color='green')
 plt.plot(times, f0_autocorr, label='Autocorrélation', color='purple')
 plt.plot(times, f0_true, label='Valeurs données', color='black')
-plt.title("Fréquence Fondamentale détectée avec différentes méthodes")
+plt.title("Fréquence Fondamentale détectée dans la flute")
+plt.xlabel("Temps (s)")
+plt.ylabel("Fréquence fondamentale (Hz)")
+plt.legend()
+
+n=len(f0_autocorr)
+print('Bilan pour la flute:')
+print('erreur moyenne L1 de la méthode naive FFT:'+str(np.linalg.norm(f0_true - f0_fft, ord=1)/n))
+print('erreur moyenne L2 de la méthode naive FFT:'+str(np.linalg.norm(f0_true - f0_fft, ord=2)/np.sqrt(n)))
+print('erreur moyenne L1 de la méthode par autocorrelation:'+str(np.linalg.norm(f0_true - f0_autocorr, ord=1)/n))
+print('erreur moyenne L2 de la méthode par autocorrelation:'+str(np.linalg.norm(f0_true - f0_autocorr, ord=2)/np.sqrt(n)))
+
+print("On constate que la méthode d'autocorrélation est plus précise.")
+print('En effet, la méthode naive ne détecte parfois pas la fondamentale mais les harmoniques.')
+
+
+
+
+
+# Chargement du fichier audio voix
+data, samplerate = sf.read('D:\\Ecole\\CS\\METZ2A\\Traitement audio\\audioprocessing\\audio_files\\voiceP.wav')
+x = data
+T = 1 / samplerate
+
+# Calcul avec chaque méthode
+times, f0_fft = naive_fft_fundamental(x, samplerate, window_size, hop_size,treshold)
+times, f0_autocorr = autocorrelation_fundamental(x, samplerate, window_size, hop_size, Fmin, Fmax,treshold)
+
+#récupération des vraies valeurs
+filepath = 'D:\\Ecole\\CS\\METZ2A\\Traitement audio\\audioprocessing\\documentation_cours\\veriteterrainvoiceP.txt'
+reference = pd.read_csv(filepath, sep='\s+', header=None, names=['debut', 'fin', 'frequence'])
+f0_true = []
+for i in times:
+    row = reference[(reference['debut']<=i) & (reference['fin'] > i)]
+    if not row.empty:
+        f0_true.append(row['frequence'].values[0])
+    else:
+        f0_true.append(0)
+f0_true = np.array(f0_true)
+print(f0_true)
+
+# Affichage des résultats
+plt.subplot(2,1,2)
+plt.plot(times, f0_fft, label='FFT naive', color='green')
+plt.plot(times, f0_autocorr, label='Autocorrélation', color='purple')
+plt.plot(times, f0_true, label='Valeurs données', color='black')
+plt.title("Fréquence Fondamentale détectée dans la voix")
 plt.xlabel("Temps (s)")
 plt.ylabel("Fréquence fondamentale (Hz)")
 plt.legend()
@@ -124,6 +161,7 @@ plt.tight_layout()
 plt.show()
 
 n=len(f0_autocorr)
+print('Bilan pour la voix')
 print('erreur moyenne L1 de la méthode naive FFT:'+str(np.linalg.norm(f0_true - f0_fft, ord=1)/n))
 print('erreur moyenne L2 de la méthode naive FFT:'+str(np.linalg.norm(f0_true - f0_fft, ord=2)/np.sqrt(n)))
 print('erreur moyenne L1 de la méthode par autocorrelation:'+str(np.linalg.norm(f0_true - f0_autocorr, ord=1)/n))
@@ -131,3 +169,4 @@ print('erreur moyenne L2 de la méthode par autocorrelation:'+str(np.linalg.norm
 
 print("On constate que la méthode d'autocorrélation est plus précise.")
 print('En effet, la méthode naive a du mal a détecter les vibratos légers.')
+print('Globalement les deux méthodes sont moins efficaces pour détecter la fondamentale')
