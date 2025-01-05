@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import librosa
 import pandas as pd
+from scipy.signal import butter, filtfilt
 
 
 # Fonction pour détecter la fréquence fondamentale avec FFT
@@ -65,17 +66,31 @@ def autocorrelation_fundamental(signal, samplerate, window_size, hop_size, fmin,
     print("calculated autocorrelation")
     return np.array(times), f0 #np.array(f0)
 
+def autocorrelation_fundamental_with_filter(signal, samplerate, window_size, hop_size, fmin, fmax, treshold, vibrato_freq=4.5):
+    # Calculer la fréquence fondamentale avec autocorrélation
+    times, f0 = autocorrelation_fundamental(signal, samplerate, window_size, hop_size, fmin, fmax, treshold)
+    
+    # Conception d'un filtre passe-bas pour supprimer le vibrato (environ 5 Hz)
+    #il faut reconvertir en duréee
+    freq_echantillon_f0 = samplerate / hop_size
+    nyquist = freq_echantillon_f0 / 2
+    vibrato_cutoff = vibrato_freq / nyquist  # Normaliser la fréquence du vibrato
 
+    # Appliquer un filtre passe-bas (cut-off à vibrato_freq) sur f0
+    b, a = butter(2, vibrato_cutoff, btype='low')  # Créer le filtre Butterworth
+    f0_filtered = filtfilt(b, a, f0)  # Appliquer le filtre sur la fréquence fondamentale
+    print("application d'un passe bas")
+    return times, f0_filtered
 
 
 # Chargement du fichier audio flute
-data, samplerate = sf.read('D:\\Ecole\\CS\\METZ2A\\Traitement audio\\audioprocessing\\audio_files\\fluteircam.wav')
+data, samplerate = sf.read('C:\\Users\\nathan\\Desktop\\audio\\audio_files\\fluteircam.wav')
 x = data
 T = 1 / samplerate
 
 # Paramètres
 window_size = 0.02 # Taille de la fenêtre en secondes
-hop_size = 0.01  # Décalage entre les fenêtres (en secondes)
+hop_size = 0.005  # Décalage entre les fenêtres (en secondes)
 treshold = 0.003
 Fmin = librosa.note_to_hz('C3')
 Fmax = librosa.note_to_hz('C6')
@@ -87,9 +102,10 @@ hop_size = int(hop_size / T)
 # Calcul avec chaque méthode
 times, f0_fft = naive_fft_fundamental(x, samplerate, window_size, hop_size,treshold)
 times, f0_autocorr = autocorrelation_fundamental(x, samplerate, window_size, hop_size, Fmin, Fmax,treshold)
+times, f0_autocorr_vib = autocorrelation_fundamental_with_filter(x, samplerate, window_size, hop_size, Fmin, Fmax,treshold)
 
 #récupération des vraies valeurs
-filepath = 'D:\\Ecole\\CS\\METZ2A\\Traitement audio\\audioprocessing\\documentation_cours\\veriteterrainflute.txt'
+filepath = 'C:\\Users\\nathan\\Desktop\\audio\\documentation_cours\\veriteterrainflute.txt'
 reference = pd.read_csv(filepath, sep='\s+', header=None, names=['debut', 'fin', 'frequence'])
 f0_true = []
 for i in times:
@@ -99,13 +115,14 @@ for i in times:
     else:
         f0_true.append(0)
 f0_true = np.array(f0_true)
-print(f0_true)
+
 
 # Affichage des résultats
 plt.figure(figsize=(10, 6))
 plt.subplot(2,1,1)
 plt.plot(times, f0_fft, label='FFT naive', color='green')
 plt.plot(times, f0_autocorr, label='Autocorrélation', color='purple')
+plt.plot(times, f0_autocorr_vib, label='Autocorrélation filtrée passe bas', color='red')
 plt.plot(times, f0_true, label='Valeurs données', color='black')
 plt.title("Fréquence Fondamentale détectée dans la flute")
 plt.xlabel("Temps (s)")
@@ -116,27 +133,32 @@ n=len(f0_autocorr)
 print('Bilan pour la flute:')
 print('erreur moyenne L1 de la méthode naive FFT:'+str(np.linalg.norm(f0_true - f0_fft, ord=1)/n))
 print('erreur moyenne L2 de la méthode naive FFT:'+str(np.linalg.norm(f0_true - f0_fft, ord=2)/np.sqrt(n)))
-print('erreur moyenne L1 de la méthode par autocorrelation:'+str(np.linalg.norm(f0_true - f0_autocorr, ord=1)/n))
-print('erreur moyenne L2 de la méthode par autocorrelation:'+str(np.linalg.norm(f0_true - f0_autocorr, ord=2)/np.sqrt(n)))
+print('erreur moyenne L1 de la méthode par autocorrelation:' + str(np.linalg.norm(f0_true - f0_autocorr, ord=1)/n))
+print('erreur moyenne L2 de la méthode par autocorrelation:' + str(np.linalg.norm(f0_true - f0_autocorr, ord=2)/np.sqrt(n)))
+print('erreur moyenne L1 de la méthode par autocorrelation filtrée:'+str(np.linalg.norm(f0_true - f0_autocorr_vib, ord=1)/n))
+print('erreur moyenne L2 de la méthode par autocorrelation filtrée:'+str(np.linalg.norm(f0_true - f0_autocorr_vib, ord=2)/np.sqrt(n)))
 
 print("On constate que la méthode d'autocorrélation est plus précise.")
 print('En effet, la méthode naive ne détecte parfois pas la fondamentale mais les harmoniques.')
+print('De plus le filtrage enleve de la précision puisque la note de la flûte se maintient presque parfaitement')
+print('et le gain que l on ferait avec le passse bas est perdu pendant le régime transitoire pour passer d une note à une autre')
 
 
 
 
 
 # Chargement du fichier audio voix
-data, samplerate = sf.read('D:\\Ecole\\CS\\METZ2A\\Traitement audio\\audioprocessing\\audio_files\\voiceP.wav')
+data, samplerate = sf.read('C:\\Users\\nathan\\Desktop\\audio\\audio_files\\voiceP.wav')
 x = data
 T = 1 / samplerate
 
 # Calcul avec chaque méthode
 times, f0_fft = naive_fft_fundamental(x, samplerate, window_size, hop_size,treshold)
 times, f0_autocorr = autocorrelation_fundamental(x, samplerate, window_size, hop_size, Fmin, Fmax,treshold)
+times, f0_autocorr_vib = autocorrelation_fundamental_with_filter(x, samplerate, window_size, hop_size, Fmin, Fmax,treshold)
 
 #récupération des vraies valeurs
-filepath = 'D:\\Ecole\\CS\\METZ2A\\Traitement audio\\audioprocessing\\documentation_cours\\veriteterrainvoiceP.txt'
+filepath = 'C:\\Users\\nathan\\Desktop\\audio\\documentation_cours\\veriteterrainvoiceP.txt'
 reference = pd.read_csv(filepath, sep='\s+', header=None, names=['debut', 'fin', 'frequence'])
 f0_true = []
 for i in times:
@@ -146,30 +168,36 @@ for i in times:
     else:
         f0_true.append(0)
 f0_true = np.array(f0_true)
-print(f0_true)
+
 
 # Affichage des résultats
 plt.subplot(2,1,2)
 plt.plot(times, f0_fft, label='FFT naive', color='green')
 plt.plot(times, f0_autocorr, label='Autocorrélation', color='purple')
+plt.plot(times, f0_autocorr_vib, label='Autocorrélation filtrée passe bas', color='red')
 plt.plot(times, f0_true, label='Valeurs données', color='black')
 plt.title("Fréquence Fondamentale détectée dans la voix")
 plt.xlabel("Temps (s)")
 plt.ylabel("Fréquence fondamentale (Hz)")
 plt.legend()
 plt.tight_layout()
-plt.show()
 
 n=len(f0_autocorr)
+print('\n')
 print('Bilan pour la voix')
 print('erreur moyenne L1 de la méthode naive FFT:'+str(np.linalg.norm(f0_true - f0_fft, ord=1)/n))
 print('erreur moyenne L2 de la méthode naive FFT:'+str(np.linalg.norm(f0_true - f0_fft, ord=2)/np.sqrt(n)))
 print('erreur moyenne L1 de la méthode par autocorrelation:'+str(np.linalg.norm(f0_true - f0_autocorr, ord=1)/n))
 print('erreur moyenne L2 de la méthode par autocorrelation:'+str(np.linalg.norm(f0_true - f0_autocorr, ord=2)/np.sqrt(n)))
+print('erreur moyenne L1 de la méthode par autocorrelation filtrée:'+str(np.linalg.norm(f0_true - f0_autocorr_vib, ord=1)/n))
+print('erreur moyenne L2 de la méthode par autocorrelation filtrée:'+str(np.linalg.norm(f0_true - f0_autocorr_vib, ord=2)/np.sqrt(n)))
 
 print("On constate que la méthode d'autocorrélation est plus précise.")
 print('En effet, la méthode naive a du mal a détecter les vibratos légers.')
 print('Globalement les deux méthodes sont moins efficaces pour détecter la fondamentale')
+print('Finalement dans ce cas, ça vaut le coup d uiliser un filtre passe bas: même si on perd de la rapidité en régime transitoire')
+print("on la regagne pendant les vibratos")
+      
 
 
 

@@ -4,7 +4,7 @@ import soundfile as sf
 from scipy.signal import find_peaks
 
 # Charger le fichier audio avec soundfile
-file_path = 'D:\\Ecole\\CS\\METZ2A\\Traitement audio\\audioprocessing\\audio_files\\croisement4.wav'  # Remplacez par le chemin de votre fichier
+file_path = 'C:\\Users\\nathan\\Desktop\\audio\\audio_files\\croisement4.wav'  # Remplacez par le chemin de votre fichier
 data, sample_rate = sf.read(file_path)
 
 # Vérifier si le fichier est mono ou stéréo
