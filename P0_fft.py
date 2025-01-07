@@ -3,8 +3,14 @@ import numpy as np
 import cmath
 import math
 import matplotlib.pyplot as plt
+import os
 
-data, samplerate = sf.read('C:\\Users\\Nathan\\Desktop\\CS\\METZ2A\\Traitement audio\\audioprocessing\\audio_files\\fluteircam.wav')
+# Construire le chemin relatif vers le fichier audio
+script_dir = os.path.dirname(os.path.abspath(__file__))  # Répertoire du script
+audio_path = os.path.join(script_dir, 'data', 'fluteircam.wav')
+
+# Lire le fichier audio
+data, samplerate = sf.read(audio_path)
 
 def pad2n(x):
     N = len(x)
