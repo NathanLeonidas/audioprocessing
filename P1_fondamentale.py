@@ -15,13 +15,18 @@ def naive_fft_fundamental(signal, samplerate, window_size, hop_size, treshold):
         window = signal[start:end]
         if np.mean(np.abs(window))>treshold:
             windowed_signal = window * np.hamming(len(window))  # Appliquer une fenêtre de Hamming
-            spectrum = np.fft.fft(windowed_signal)[:len(windowed_signal)//2]  # Spectre
-            frequencies = np.fft.fftfreq(len(windowed_signal), d=1/samplerate)[:len(windowed_signal)//2]
+            padding = 2**15
+            spectrum = np.fft.fft(windowed_signal,n=padding)[:padding//2]  # Spectre
+            frequencies = np.fft.fftfreq(padding, d=1/samplerate)[:padding//2]
             magnitude = np.abs(spectrum)
             
-            # Trouver le pic maximal dans les fréquences
+            # Trouver le premier pic maximal dans les fréquences
+            peaks=[]
+            for i in range(len(magnitude)):
+                if magnitude[i]>magnitude[i+1] and magnitude[i]>magnitude[i-1]:
+                    peaks.append(i)
             fundamental_freq = frequencies[np.argmax(magnitude)]
-            f0.append(fundamental_freq)
+            f0.append(frequencies[peaks[0]])
             
         else:
             f0.append(0)
@@ -84,7 +89,7 @@ def autocorrelation_fundamental_with_filter(signal, samplerate, window_size, hop
 
 
 # Chargement du fichier audio flute
-data, samplerate = sf.read('C:\\Users\\nathan\\Desktop\\audio\\audio_files\\fluteircam.wav')
+data, samplerate = sf.read('D:\\Ecole\\CS\\METZ2A\\Traitement audio\\audioprocessing\\audio_files\\fluteircam.wav')
 x = data
 T = 1 / samplerate
 
@@ -105,7 +110,7 @@ times, f0_autocorr = autocorrelation_fundamental(x, samplerate, window_size, hop
 times, f0_autocorr_vib = autocorrelation_fundamental_with_filter(x, samplerate, window_size, hop_size, Fmin, Fmax,treshold)
 
 #récupération des vraies valeurs
-filepath = 'C:\\Users\\nathan\\Desktop\\audio\\documentation_cours\\veriteterrainflute.txt'
+filepath = 'D:\\Ecole\\CS\\METZ2A\\Traitement audio\\audioprocessing\\documentation_cours\\veriteterrainflute.txt'
 reference = pd.read_csv(filepath, sep='\s+', header=None, names=['debut', 'fin', 'frequence'])
 f0_true = []
 for i in times:
@@ -148,7 +153,7 @@ print('et le gain que l on ferait avec le passse bas est perdu pendant le régim
 
 
 # Chargement du fichier audio voix
-data, samplerate = sf.read('C:\\Users\\nathan\\Desktop\\audio\\audio_files\\voiceP.wav')
+data, samplerate = sf.read('D:\\Ecole\\CS\\METZ2A\\Traitement audio\\audioprocessing\\audio_files\\voiceP.wav')
 x = data
 T = 1 / samplerate
 
@@ -158,7 +163,7 @@ times, f0_autocorr = autocorrelation_fundamental(x, samplerate, window_size, hop
 times, f0_autocorr_vib = autocorrelation_fundamental_with_filter(x, samplerate, window_size, hop_size, Fmin, Fmax,treshold)
 
 #récupération des vraies valeurs
-filepath = 'C:\\Users\\nathan\\Desktop\\audio\\documentation_cours\\veriteterrainvoiceP.txt'
+filepath = 'D:\\Ecole\\CS\\METZ2A\\Traitement audio\\audioprocessing\\documentation_cours\\veriteterrainvoiceP.txt'
 reference = pd.read_csv(filepath, sep='\s+', header=None, names=['debut', 'fin', 'frequence'])
 f0_true = []
 for i in times:
