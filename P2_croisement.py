@@ -2,9 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import soundfile as sf
 from scipy.signal import find_peaks
+import os
+
+# Construire le chemin relatif vers le fichier audio
+script_dir = os.path.dirname(os.path.abspath(__file__))  
+
 
 # Charger le fichier audio avec soundfile
-file_path = 'D:\\Ecole\\CS\\METZ2A\\Traitement audio\\audioprocessing\\audio_files\\croisement.wav'  # Remplacez par le chemin de votre fichier
+file_path = os.path.join(script_dir, 'audio_files', 'croisement.wav')
 data, sample_rate = sf.read(file_path)
 T= 1 / sample_rate
 

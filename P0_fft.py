@@ -7,7 +7,7 @@ import os
 
 # Construire le chemin relatif vers le fichier audio
 script_dir = os.path.dirname(os.path.abspath(__file__))  # Répertoire du script
-audio_path = os.path.join(script_dir, 'data', 'fluteircam.wav')
+audio_path = os.path.join(script_dir, 'audio_files', 'fluteircam.wav')
 
 # Lire le fichier audio
 data, samplerate = sf.read(audio_path)
