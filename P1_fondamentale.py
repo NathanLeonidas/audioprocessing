@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import librosa
 import pandas as pd
 from scipy.signal import butter, filtfilt
-import os
 
 
 # Fonction pour détecter la fréquence fondamentale avec FFT
@@ -16,13 +15,18 @@ def naive_fft_fundamental(signal, samplerate, window_size, hop_size, treshold):
         window = signal[start:end]
         if np.mean(np.abs(window))>treshold:
             windowed_signal = window * np.hamming(len(window))  # Appliquer une fenêtre de Hamming
-            spectrum = np.fft.fft(windowed_signal)[:len(windowed_signal)//2]  # Spectre
-            frequencies = np.fft.fftfreq(len(windowed_signal), d=1/samplerate)[:len(windowed_signal)//2]
+            padding = 2**15
+            spectrum = np.fft.fft(windowed_signal,n=padding)[:padding//2]  # Spectre
+            frequencies = np.fft.fftfreq(padding, d=1/samplerate)[:padding//2]
             magnitude = np.abs(spectrum)
             
-            # Trouver le pic maximal dans les fréquences
+            # Trouver le premier pic maximal dans les fréquences
+            peaks=[]
+            for i in range(len(magnitude)):
+                if magnitude[i]>magnitude[i+1] and magnitude[i]>magnitude[i-1]:
+                    peaks.append(i)
             fundamental_freq = frequencies[np.argmax(magnitude)]
-            f0.append(fundamental_freq)
+            f0.append(frequencies[peaks[0]])
             
         else:
             f0.append(0)

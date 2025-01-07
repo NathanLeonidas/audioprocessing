@@ -31,7 +31,6 @@ def find_peaks_simple(x, height=None, distance=0.1, n_peaks=2):
             if height is None or x[i] >= height:  # Filtre de hauteur
                 peaks.append(i)
     
-
     # Liste finale de pics après filtrage de la distance
     filtered_peaks = []
     last_peak = -distance  # Initialise à une valeur inférieure à la distance minimale
@@ -39,7 +38,6 @@ def find_peaks_simple(x, height=None, distance=0.1, n_peaks=2):
         if peak - last_peak >= distance and len(filtered_peaks)<n_peaks:
             filtered_peaks.append(peak)
             last_peak = peak
-
     
     if len(filtered_peaks)<n_peaks:
         filtered_peaks.append(peaks[-1]*(n_peaks-len(filtered_peaks)))
@@ -50,18 +48,17 @@ def find_peaks_simple(x, height=None, distance=0.1, n_peaks=2):
 # Paramètres
 window_size = 0.1 # Taille de la fenêtre en secondes
 hop_size = 0.01  # Décalage entre les fenêtres (en secondes)
+padding = 2**15
+distancemin = 100 #en Hz, espace minimal entre deux crêtes que l'on peut bien séparer
 
 #conversion en nbre d'échantillons
 n_fft = int(window_size / T)
 n_hop = int(hop_size / T)
-window = np.hamming(n_fft) 
-padding = 2**14
-distancemin = 4 #en Hz, espace minimal entre deux crêtes que l'on sait séparer
-print(n_fft)
+window = [1] * n_fft
+
 
 # Calculer la FFT
 frames = range(0, len(data) - n_fft, n_hop)
-print(len(data)-n_fft, frames[-1])
 fft = np.array([np.fft.rfft(window * data[i:i + n_fft], n=padding) for i in frames])
 
 # Magnitude spectrale
