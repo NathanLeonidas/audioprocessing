@@ -4,15 +4,16 @@ import soundfile as sf
 from scipy.signal import find_peaks
 
 # Charger le fichier audio avec soundfile
-file_path = 'D:\\Ecole\\CS\\METZ2A\\Traitement audio\\audioprocessing\\audio_files\\croisement4.wav'  # Remplacez par le chemin de votre fichier
+file_path = 'D:\\Ecole\\CS\\METZ2A\\Traitement audio\\audioprocessing\\audio_files\\croisement.wav'  # Remplacez par le chemin de votre fichier
 data, sample_rate = sf.read(file_path)
+T= 1 / sample_rate
 
 # Vérifier si le fichier est mono ou stéréo
 if len(data.shape) > 1:
     data = data[:, 0]  # Prendre un seul canal si stéréo
 
 
-def find_peaks_simple(x, height=None, distance=1, n_peaks=2):
+def find_peaks_simple(x, height=None, distance=0.1, n_peaks=2):
     # Convertir en numpy array pour la manipulation
     x = np.array(x)
     
@@ -25,39 +26,45 @@ def find_peaks_simple(x, height=None, distance=1, n_peaks=2):
             if height is None or x[i] >= height:  # Filtre de hauteur
                 peaks.append(i)
     
-    # Filtrage par distance
-    if distance > 1:
-        # Liste finale de pics après filtrage de la distance
-        filtered_peaks = []
-        last_peak = -distance  # Initialise à une valeur inférieure à la distance minimale
-        for peak in peaks:
-            if peak - last_peak >= distance and len(filtered_peaks)<n_peaks:
-                filtered_peaks.append(peak)
-                last_peak = peak
-        peaks = filtered_peaks
+
+    # Liste finale de pics après filtrage de la distance
+    filtered_peaks = []
+    last_peak = -distance  # Initialise à une valeur inférieure à la distance minimale
+    for peak in peaks:
+        if peak - last_peak >= distance and len(filtered_peaks)<n_peaks:
+            filtered_peaks.append(peak)
+            last_peak = peak
+
     
-    if len(peaks)<n_peaks:
-        peaks.append(peaks[-1]*(n_peaks-len(peaks)))
-    return np.array(peaks)
+    if len(filtered_peaks)<n_peaks:
+        filtered_peaks.append(peaks[-1]*(n_peaks-len(filtered_peaks)))
+    return np.array(filtered_peaks)
 
-# Normaliser le signal
-data = data / np.max(np.abs(data))
 
-# Paramètres FFT
-n_fft = 2**13  # Taille de la fenêtre FFT
-hop_length = round(0.001*sample_rate)  # Chevauchement
-window = np.hanning(n_fft)  # Fenêtre de Hanning
+
+# Paramètres
+window_size = 0.1 # Taille de la fenêtre en secondes
+hop_size = 0.01  # Décalage entre les fenêtres (en secondes)
+
+#conversion en nbre d'échantillons
+n_fft = int(window_size / T)
+n_hop = int(hop_size / T)
+window = np.hamming(n_fft) 
+padding = 2**14
+distancemin = 4 #en Hz, espace minimal entre deux crêtes que l'on sait séparer
+print(n_fft)
 
 # Calculer la FFT
-frames = range(0, len(data) - n_fft, hop_length)
-fft = np.array([np.fft.rfft(window * data[i:i + n_fft]) for i in frames])
+frames = range(0, len(data) - n_fft, n_hop)
+print(len(data)-n_fft, frames[-1])
+fft = np.array([np.fft.rfft(window * data[i:i + n_fft], n=padding) for i in frames])
 
 # Magnitude spectrale
 magnitude = np.abs(fft)
 
 # Fréquences et temps associées
-frequencies = np.fft.rfftfreq(n_fft, 1 / sample_rate)
-times = np.arange(len(frames)) * hop_length / sample_rate
+frequencies = np.fft.rfftfreq(padding, T)
+times = np.arange(len(frames)) * hop_size * T
 
 # Détection des fréquences dominantes
 freqs_a = []
@@ -65,7 +72,7 @@ freqs_b = []
 ampls_a=[]
 ampls_b=[]
 for frame in magnitude:
-    peak1, peak2 = find_peaks_simple(frame, height=np.max(frame) * 0.1, n_peaks=2)  # Pics locaux significatifs
+    peak1, peak2 = find_peaks_simple(frame, height=np.max(frame) * 0.1, distance=distancemin)  # Pics locaux significatifs
     #frame[peaks] est l'amplitude des pics
     #frequencies[peaks] est la frequence des pics
     ampl1, freq1  = frame[peak1], frequencies[peak1]
@@ -76,7 +83,7 @@ for frame in magnitude:
         freqs_a.append(freq1)
         ampls_b.append(ampl2)
         freqs_b.append(freq2)
-    elif np.abs(freq1 - freq2)<70:
+    elif np.abs(freq1 - freq2)<distancemin:
         if np.abs(ampls_a[-1]-ampl1)<np.abs(ampls_b[-1]-ampl1):
             ampls_a.append(ampl1)
             freqs_a.append(freq1)
@@ -117,3 +124,6 @@ plt.scatter(times, freqs_b, color="blue", label="Fréquences B", s=5)
 
 plt.legend()
 plt.show()
+
+print('On ne detecte bien les amplitudes qu avec la fft, les methodes paramétriques ne renvoient pas les emplitudes')
+print('info a vérifier')
