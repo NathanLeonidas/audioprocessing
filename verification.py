@@ -2,10 +2,15 @@ import librosa
 import numpy as np
 import parselmouth
 import matplotlib.pyplot as plt
-from parselmouth.praat import call
+import sounddevice as sd
+import os
 
-# Load the .wav file
-file_path = '/Users/paullemaire/Documents/fluteircam.wav'
+# Construire le chemin relatif vers le fichier audio
+script_dir = os.path.dirname(os.path.abspath(__file__))  
+
+# Charger le fichier audio avec soundfile
+file_path = os.path.join(script_dir, 'audio_files', 'fluteircam.wav')
+
 y, sr = librosa.load(file_path, sr=None)
 
 # Extract the pitch using Parselmouth
@@ -116,8 +121,6 @@ plt.show()
 print("Interval Averages:")
 for start_time, end_time, interval_avg in interval_averages:
     print(f"Interval: {start_time:.2f}s to {end_time:.2f}s, Average Pitch: {interval_avg:.2f} Hz")
-
-import sounddevice as sd
 
 def play_average_pitches(interval_averages, sampling_rate=44100):
     """

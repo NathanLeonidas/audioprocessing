@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import librosa
 import pandas as pd
 from scipy.signal import butter, filtfilt
+import os
 
 
 # Fonction pour détecter la fréquence fondamentale avec FFT
@@ -82,9 +83,12 @@ def autocorrelation_fundamental_with_filter(signal, samplerate, window_size, hop
     print("application d'un passe bas")
     return times, f0_filtered
 
+# Construire le chemin relatif vers le fichier audio
+script_dir = os.path.dirname(os.path.abspath(__file__))  # Répertoire du script
+audio_path = os.path.join(script_dir, 'audio_files', 'fluteircam.wav')
 
-# Chargement du fichier audio flute
-data, samplerate = sf.read('C:\\Users\\nathan\\Desktop\\audio\\audio_files\\fluteircam.wav')
+# Lire le fichier audio
+data, samplerate = sf.read(audio_path)
 x = data
 T = 1 / samplerate
 
@@ -105,7 +109,7 @@ times, f0_autocorr = autocorrelation_fundamental(x, samplerate, window_size, hop
 times, f0_autocorr_vib = autocorrelation_fundamental_with_filter(x, samplerate, window_size, hop_size, Fmin, Fmax,treshold)
 
 #récupération des vraies valeurs
-filepath = 'C:\\Users\\nathan\\Desktop\\audio\\documentation_cours\\veriteterrainflute.txt'
+filepath = os.path.join(script_dir, 'documentation_cours', 'veriteterrainflute.txt')
 reference = pd.read_csv(filepath, sep='\s+', header=None, names=['debut', 'fin', 'frequence'])
 f0_true = []
 for i in times:
@@ -148,7 +152,10 @@ print('et le gain que l on ferait avec le passse bas est perdu pendant le régim
 
 
 # Chargement du fichier audio voix
-data, samplerate = sf.read('C:\\Users\\nathan\\Desktop\\audio\\audio_files\\voiceP.wav')
+audio_path = os.path.join(script_dir, 'audio_files', 'voiceP.wav')
+
+# Lire le fichier audio
+data, samplerate = sf.read(audio_path)
 x = data
 T = 1 / samplerate
 
@@ -158,7 +165,7 @@ times, f0_autocorr = autocorrelation_fundamental(x, samplerate, window_size, hop
 times, f0_autocorr_vib = autocorrelation_fundamental_with_filter(x, samplerate, window_size, hop_size, Fmin, Fmax,treshold)
 
 #récupération des vraies valeurs
-filepath = 'C:\\Users\\nathan\\Desktop\\audio\\documentation_cours\\veriteterrainvoiceP.txt'
+filepath = os.path.join(script_dir, 'documentation_cours', 'veriteterrainvoiceP.txt')
 reference = pd.read_csv(filepath, sep='\s+', header=None, names=['debut', 'fin', 'frequence'])
 f0_true = []
 for i in times:
