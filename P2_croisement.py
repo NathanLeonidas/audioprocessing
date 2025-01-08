@@ -18,43 +18,34 @@ if len(data.shape) > 1:
     data = data[:, 0]  # Prendre un seul canal si stéréo
 
 
-def find_peaks_simple(x, height=None, distance=0.1, n_peaks=2):
+def find_peaks_simple(x, distance,padding,T):
     # Convertir en numpy array pour la manipulation
     x = np.array(x)
     
-    # Liste pour stocker les indices des pics
-    peaks = []
+    peak1 = np.argmax(x)
+    peak2 = 0
     
     # Trouver les maxima locaux
     for i in range(1, len(x) - 1):
         if x[i] > x[i-1] and x[i] > x[i+1]:  # Comparaison avec voisins
-            if height is None or x[i] >= height:  # Filtre de hauteur
-                peaks.append(i)
+            if x[i] > x[peak2] and np.abs(i-peak1)/(T*padding)>distance:  # Filtre de hauteur
+                peak2 = i
     
-    # Liste finale de pics après filtrage de la distance
-    filtered_peaks = []
-    last_peak = -distance  # Initialise à une valeur inférieure à la distance minimale
-    for peak in peaks:
-        if peak - last_peak >= distance and len(filtered_peaks)<n_peaks:
-            filtered_peaks.append(peak)
-            last_peak = peak
-    
-    if len(filtered_peaks)<n_peaks:
-        filtered_peaks.append(peaks[-1]*(n_peaks-len(filtered_peaks)))
-    return np.array(filtered_peaks)
+
+    return np.array([peak1,peak2])
 
 
 
 # Paramètres
-window_size = 0.1 # Taille de la fenêtre en secondes
+window_size = 0.06 # Taille de la fenêtre en secondes
 hop_size = 0.01  # Décalage entre les fenêtres (en secondes)
-padding = 2**15
-distancemin = 100 #en Hz, espace minimal entre deux crêtes que l'on peut bien séparer
+padding = 2**16
+distancemin = 1 #en Hz, espace minimal entre deux crêtes que l'on peut bien séparer
 
 #conversion en nbre d'échantillons
 n_fft = int(window_size / T)
 n_hop = int(hop_size / T)
-window = [1] * n_fft
+window = [1]* n_fft #np.hamming(n_fft)
 
 
 # Calculer la FFT
@@ -74,7 +65,7 @@ freqs_b = []
 ampls_a=[]
 ampls_b=[]
 for frame in magnitude:
-    peak1, peak2 = find_peaks_simple(frame, height=np.max(frame) * 0.1, distance=distancemin)  # Pics locaux significatifs
+    peak1, peak2 = find_peaks_simple(frame, distancemin, padding, T)  # Pics locaux significatifs
     #frame[peaks] est l'amplitude des pics
     #frequencies[peaks] est la frequence des pics
     ampl1, freq1  = frame[peak1], frequencies[peak1]
