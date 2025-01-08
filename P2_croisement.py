@@ -7,7 +7,6 @@ import os
 # Construire le chemin relatif vers le fichier audio
 script_dir = os.path.dirname(os.path.abspath(__file__))  
 
-
 # Charger le fichier audio avec soundfile
 file_path = os.path.join(script_dir, 'audio_files', 'croisement.wav')
 data, sample_rate = sf.read(file_path)
@@ -16,7 +15,6 @@ T= 1 / sample_rate
 # Vérifier si le fichier est mono ou stéréo
 if len(data.shape) > 1:
     data = data[:, 0]  # Prendre un seul canal si stéréo
-
 
 def find_peaks_simple(x, height=None, distance=0.1, n_peaks=2):
     # Convertir en numpy array pour la manipulation
@@ -43,8 +41,6 @@ def find_peaks_simple(x, height=None, distance=0.1, n_peaks=2):
         filtered_peaks.append(peaks[-1]*(n_peaks-len(filtered_peaks)))
     return np.array(filtered_peaks)
 
-
-
 # Paramètres
 window_size = 0.1 # Taille de la fenêtre en secondes
 hop_size = 0.01  # Décalage entre les fenêtres (en secondes)
@@ -55,7 +51,6 @@ distancemin = 100 #en Hz, espace minimal entre deux crêtes que l'on peut bien s
 n_fft = int(window_size / T)
 n_hop = int(hop_size / T)
 window = [1] * n_fft
-
 
 # Calculer la FFT
 frames = range(0, len(data) - n_fft, n_hop)
