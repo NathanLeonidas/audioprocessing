@@ -35,8 +35,6 @@ def compute_fft(data, frame_size, hop_size, sample_rate):
         windowed_data = data[start:end] * np.hanning(frame_size)  # Appliquer une fenêtre de Hanning
         fft_result = np.fft.fft(windowed_data, n_fft)  # FFT rapide
         fft_result = fft_result[:n_fft//2]
-        plt.plot(np.abs(fft_result))
-        plt.show()
         spectrogram.append(np.abs(fft_result))
         time_axis.append(start / sample_rate)
 
