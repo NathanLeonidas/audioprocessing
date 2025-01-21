@@ -8,7 +8,6 @@ from sklearn.linear_model import LinearRegression
 # Construire le chemin relatif vers le fichier audio
 script_dir = os.path.dirname(os.path.abspath(__file__))  
 
-
 # Charger le fichier audio avec soundfile
 file_path = os.path.join(script_dir, 'audio_files', 'croisement.wav')
 data, sample_rate = sf.read(file_path)
@@ -168,12 +167,12 @@ n_hop = int(hop_size / T)
 window = [1]* n_fft
 
 #essai pour différentes fenetres
-for window_size_ in [0.01, 0.05, 0.1]:
+for window_size_ in [0.01, 0.05, 0.07]:
     n_fft = int(window_size_ / T)
     window = [1]* n_fft
     separate_fft(n_fft, window)
 print('Pour la fenetre rectangulaire:')
-print('La fenetre à 0.01 est trop petite (on sépare trop de fréquences mal) et celle de 0.1 trop grande (la raie glissante est diffuse)')
+print('La fenetre à 0.01 est trop petite (on sépare trop de fréquences mal) et celle de 0.7 trop grande (la raie glissante est diffuse) mais avec les meilleurs résultats')
 
 
 
