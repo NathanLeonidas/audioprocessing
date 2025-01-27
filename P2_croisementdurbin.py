@@ -3,62 +3,42 @@ import matplotlib.pyplot as plt
 import soundfile as sf
 import os
 from scipy.signal import find_peaks
+from scipy.linalg import solve_toeplitz, toeplitz
 
 # Construire le chemin relatif vers le fichier audio
 script_dir = os.path.dirname(os.path.abspath(__file__))  
 
 # Charger le fichier audio avec soundfile
-file_path = os.path.join(script_dir, 'audio_files', 'croisement.wav')
+file_path = os.path.join(script_dir, 'audio_files', 'croisement4.wav')
 data, sample_rate = sf.read(file_path)
 T = 1 / sample_rate
 
-data = np.sin(200*np.pi*2*np.linspace(0,2,int(2*sample_rate)))
-print(data)
+
 
 # Vérifier si le fichier est mono ou stéréo
 if len(data.shape) > 1:
     data = data[:, 0]  # Prendre un seul canal si stéréo
 
 
-def levinson_durbin(r, order):
-    """
-    Implémente l'algorithme de Levinson-Durbin pour résoudre les coefficients de prédiction linéaire.
-    r: La fonction d'autocorrélation (liste numpy)
-    order: L'ordre du modèle AR (p)
-    """
-    a = np.zeros(order)  # Coefficients AR
-    e = np.zeros(order)  # Erreur (variance résiduelle)
-    
-    a[0] = -r[1] / r[0]
-    e[0] = r[0] * (1 - a[0] ** 2)
 
-    for k in range(1, order):
-        # Calcul de lambda_k en utilisant la formule correcte
-        lambda_k = (r[k + 1] - np.dot(a[:k], r[k::-1][:k])) / e[k - 1]
-        a[k] = lambda_k
-        e[k] = e[k - 1] * (1 - lambda_k ** 2)
-        
-        # Mise à jour des coefficients AR
-        a[:k] = a[:k] - lambda_k * a[k - 1::-1]
-
-    return a, e[-1]
 
 
 def compute_dsp(a, order, freq_range, sigma2):
-    """
-    Calculer la densité spectrale de puissance (DSP) à partir des coefficients AR.
-    a: Les coefficients AR obtenus via Levinson-Durbin
-    order: L'ordre du modèle AR
-    freq_range: Plage de fréquences pour lesquelles calculer la DSP
-    sigma2: La variance du bruit
-    """
     dsp = []
     for f in freq_range:
         numerator = sigma2
-        denominator = sample_rate*abs(1 + np.sum(a * np.exp(-1j * 2 * np.pi * f * np.arange(1, order + 1)) / sample_rate)) ** 2
+        sum = 0
+        for i in range(order):
+            sum += a[i] * np.exp(-1j * 2 * np.pi * f * (i+1)/ sample_rate)
+        denominator = sample_rate*abs(1 + sum) ** 2
         dsp.append(numerator / denominator)
     return np.array(dsp)
 
+def compute_dsp(a, order, freq_range, sigma2):
+    exp_term = np.exp(-1j * 2 * np.pi * freq_range[:, None] * np.arange(1, order + 1) / sample_rate)
+    sum_term = np.dot(exp_term, a)
+    denominator = sample_rate * np.abs(1 + sum_term) ** 2
+    return sigma2 / denominator
 
 def find_peaks_simple(x, distance, padding, T, n_fft):
     # Convertir en numpy array pour la manipulation
@@ -76,31 +56,52 @@ def find_peaks_simple(x, distance, padding, T, n_fft):
     return np.array([peak1, peak2])
 
 
-def separate_levdur(n_fenetre, data):
-    # Calculer la FFT
-    frames = range(0, len(data) - n_fenetre, n_hop)
-    allwindows = [data[i:i + n_fenetre] for i in frames]
-    liste_dsp = []
 
-    # Fréquences et temps associées
-    times = np.arange(len(frames)) * hop_size * T
+def separate_levdur(n_fenetre, data):
+    # Créez toutes les fenêtres en une seule opération
+    num_frames = (len(data) - n_fenetre) // n_hop
+    indices = np.arange(0, num_frames * n_hop, n_hop)[:, None] + np.arange(n_fenetre)
+    windows = data[indices]  # (num_frames, n_fenetre)
+
+    # Calculer l'autocorrélation pour toutes les fenêtres
+    autocorr = np.apply_along_axis(
+        lambda x: np.correlate(x, x, mode='full')[len(x) - 1:] / len(x),
+        axis=1,
+        arr=windows
+    )  # (num_frames, n_fenetre)
+
+    # Initialisation pour stocker les DSP
+    dsp_list = []
 
     # Calcul de l'autocorrélation et des coefficients AR avec Levinson-Durbin
-    order = 10  # Choisir l'ordre du modèle AR (p)
-    # Plage de fréquences pour calculer la DSP (ici, de 0 Hz à la moitié de la fréquence d'échantillonnage)
-    freq_range = np.linspace(0, sample_rate / 2, num=1024)
+    order = 300  # Choisir l'ordre du modèle AR (p)
+    freq_range = np.linspace(0, sample_rate / 2, num=8000)
+    
+    for i, r in enumerate(autocorr):
+            # Extraire la première colonne et ligne pour Toeplitz
+            row = r[:order]
+            column = r[:order]
+            B = -r[1: order + 1]
 
-    for window in allwindows:
-        r = np.correlate(window, window, mode='full')[len(window) - 1:]  # Fonction d'autocorrélation
-        a, error = levinson_durbin(r, order)
-        dsp = compute_dsp(a, order, freq_range, error)
-        liste_dsp.append(dsp)
+            # Résoudre le système de Toeplitz pour les coefficients AR
+            coefs_autoregressifs = solve_toeplitz((row, column), B)
+
+            # Calcul de sigma2
+            sigma2 = r[0] + np.dot(r[1:order + 1], coefs_autoregressifs)
+
+            # Calcul de la DSP pour cette fenêtre
+            dsp = compute_dsp(coefs_autoregressifs, order, freq_range, sigma2)
+            dsp_list.append(dsp / np.max(dsp))  # Normalisation
+
+            # Afficher la progression
+            if i % 10 == 0:
+                print(f"{i} / {num_frames} frames traitées.")
 
     # Visualiser les fréquences dominantes
     plt.figure(figsize=(12, 6))
 
     # Création de l'image avec les coefficients AR
-    img = plt.imshow(np.array(liste_dsp).T, origin="lower", aspect="auto",
+    img = plt.imshow(np.array(dsp_list).T, origin="lower", aspect="auto",
                      cmap="viridis", interpolation='none')
 
     # Ajout de la colorbar en associant l'objet `img`
@@ -110,6 +111,7 @@ def separate_levdur(n_fenetre, data):
     plt.ylabel("Coefficient AR")
 
     plt.show()
+
 
 # Paramètres
 window_size = 0.05  # Taille de la fenêtre en secondes
@@ -123,7 +125,7 @@ n_hop = int(hop_size / T)
 window = np.ones(n_fenetre)
 
 # Essai pour différentes fenêtres
-for window_size_ in [0.01, 0.05, 0.07]:
+for window_size_ in [ 0.05, 0.07]:
     n_fenetre = int(window_size_ / T)
     separate_levdur(n_fenetre, data)
 

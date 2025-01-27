@@ -13,7 +13,8 @@ file_path = os.path.join(script_dir, 'audio_files', 'croisement.wav')
 _, sample_rate = sf.read(file_path)
 T = 1 / sample_rate
 
-data = np.sin(100*np.pi*2*np.linspace(0,5,int(5*sample_rate)))
+data = np.sin(100*np.pi*2*np.linspace(0,5,int(5*sample_rate))) + np.sin(1000*np.pi*2*np.linspace(0,5,int(5*sample_rate)))
+#data = np.random.randn(1*sample_rate)
 
 
 # Vérifier si le fichier est mono ou stéréo
@@ -28,7 +29,7 @@ def compute_dsp(a, order, freq_range, sigma2):
         numerator = sigma2
         sum = 0
         for i in range(order):
-            sum += a[i] * np.exp(-1j * 2 * np.pi * f * i/ sample_rate)
+            sum += a[i] * np.exp(-1j * 2 * np.pi * f * (i+1)/ sample_rate)
         denominator = sample_rate*abs(1 + sum) ** 2
         dsp.append(numerator / denominator)
     return np.array(dsp)
@@ -40,7 +41,7 @@ def compute_dsp(a, order, freq_range, sigma2):
 def separate_levdur(data):
 
     # Calcul de l'autocorrélation et des coefficients AR avec Levinson-Durbin
-    order = 10  # Choisir l'ordre du modèle AR (p)
+    order = 200  # Choisir l'ordre du modèle AR (p)
     # Plage de fréquences pour calculer la DSP (ici, de 0 Hz à la moitié de la fréquence d'échantillonnage)
     freq_range = np.linspace(-sample_rate/2, sample_rate/2, num=10000)
 
