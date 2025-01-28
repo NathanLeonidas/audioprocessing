@@ -9,7 +9,7 @@ from scipy.linalg import solve_toeplitz, toeplitz
 script_dir = os.path.dirname(os.path.abspath(__file__))  
 
 # Charger le fichier audio avec soundfile
-file_path = os.path.join(script_dir, 'audio_files', 'croisement4.wav')
+file_path = os.path.join(script_dir, 'audio_files', 'croisement3.wav')
 data, sample_rate = sf.read(file_path)
 T = 1 / sample_rate
 
