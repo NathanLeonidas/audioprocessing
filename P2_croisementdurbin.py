@@ -9,7 +9,7 @@ from scipy.linalg import solve_toeplitz, toeplitz
 script_dir = os.path.dirname(os.path.abspath(__file__))  
 
 # Charger le fichier audio avec soundfile
-file_path = os.path.join(script_dir, 'audio_files', 'croisement3.wav')
+file_path = os.path.join(script_dir, 'audio_files', 'croisement.wav')
 data, sample_rate = sf.read(file_path)
 T = 1 / sample_rate
 
@@ -21,46 +21,34 @@ if len(data.shape) > 1:
 
 
 
-
-
-def compute_dsp(a, order, freq_range, sigma2):
-    dsp = []
-    for f in freq_range:
-        numerator = sigma2
-        sum = 0
-        for i in range(order):
-            sum += a[i] * np.exp(-1j * 2 * np.pi * f * (i+1)/ sample_rate)
-        denominator = sample_rate*abs(1 + sum) ** 2
-        dsp.append(numerator / denominator)
-    return np.array(dsp)
-
 def compute_dsp(a, order, freq_range, sigma2):
     exp_term = np.exp(-1j * 2 * np.pi * freq_range[:, None] * np.arange(1, order + 1) / sample_rate)
     sum_term = np.dot(exp_term, a)
     denominator = sample_rate * np.abs(1 + sum_term) ** 2
     return sigma2 / denominator
 
-def find_peaks_simple(x, distance, padding, T, n_fft):
+def find_peaks_simple(x, distancemin):
     # Convertir en numpy array pour la manipulation
     x = np.array(x)
-    
     peak1 = np.argmax(x)
     peak2 = 0
 
     # Trouver les maxima locaux
     for i in range(1, len(x) - 1):
-        if x[i] > x[i-1] and x[i] > x[i+1]:  # Comparaison avec voisins
-            if x[i] > x[peak2] and np.abs(i - peak1) / (T * padding) > 1 / (T * n_fft):  # Filtre de hauteur
+        if x[i] > x[i-1] and x[i] > x[i+1]:
+            if x[i] > x[peak2] and i!=peak1:
                 peak2 = i
 
-    return np.array([peak1, peak2])
+    confidence = x[peak2]/x[peak1]
+
+    return peak1, peak2, confidence
 
 
 
 def separate_levdur(n_fenetre, data):
     # Créez toutes les fenêtres en une seule opération
     num_frames = (len(data) - n_fenetre) // n_hop
-    indices = np.arange(0, num_frames * n_hop, n_hop)[:, None] + np.arange(n_fenetre)
+    indices = np.arange(0, num_frames * n_hop, n_hop)[:, None] + np.arange(n_fenetre) #matrice des indices des fenetres
     windows = data[indices]  # (num_frames, n_fenetre)
 
     # Calculer l'autocorrélation pour toutes les fenêtres
@@ -68,30 +56,80 @@ def separate_levdur(n_fenetre, data):
         lambda x: np.correlate(x, x, mode='full')[len(x) - 1:] / len(x),
         axis=1,
         arr=windows
-    )  # (num_frames, n_fenetre)
+    )
 
-    # Initialisation pour stocker les DSP
+    # Initialisation pour stocker les DSP et le suivi des fréquences
     dsp_list = []
+    freqs_a = []
+    freqs_b = []
+    ampls_a = []
+    ampls_b = []
+    not_separated_correctly_a = []
+    not_separated_correctly_b = []
+    n_not_separated_correctly = 0
 
     # Calcul de l'autocorrélation et des coefficients AR avec Levinson-Durbin
-    order = 300  # Choisir l'ordre du modèle AR (p)
-    freq_range = np.linspace(0, sample_rate / 2, num=8000)
+    order = 250  # Choisir l'ordre du modèle AR (p)
+    n_freqs = 7000
+    freq_range = np.linspace(0, sample_rate / 2, num=n_freqs)
+
+    
     
     for i, r in enumerate(autocorr):
-            # Extraire la première colonne et ligne pour Toeplitz
+            # Résolution du système T x = B avec T la matrice de Topelitz des coefs autocorrélation
             row = r[:order]
             column = r[:order]
             B = -r[1: order + 1]
+            coefs_autoregressifs = solve_toeplitz((row, column), B) # Résoudre le système de Toeplitz pour les coefficients AR
+            sigma2 = r[0] + np.dot(r[1:order + 1], coefs_autoregressifs) # Calcul de sigma2
+            dsp_ = compute_dsp(coefs_autoregressifs, order, freq_range, sigma2) # Calcul de la DSP pour cette fenêtre7
+            dsp = dsp_ / np.max(dsp_)
+            dsp_list.append(dsp)  # Normalisation
 
-            # Résoudre le système de Toeplitz pour les coefficients AR
-            coefs_autoregressifs = solve_toeplitz((row, column), B)
+            #trouver les maximums de la dsp
+            peak1, peak2, confidence = find_peaks_simple(dsp, distancemin)
+            ampl1, freq1 = dsp[peak1], freq_range[peak1]
+            ampl2, freq2 = dsp[peak2], freq_range[peak2]
 
-            # Calcul de sigma2
-            sigma2 = r[0] + np.dot(r[1:order + 1], coefs_autoregressifs)
+            # On rejoint habilement les frequences pour qu'elles collent au plus des 
+            # dernieres valeurs (amplitudes et fréquences)
+            if len(freqs_a) == 0:
+                ampls_a.append(ampl1)
+                freqs_a.append(freq1)
+                ampls_b.append(ampl2)
+                freqs_b.append(freq2)
+            elif np.abs(freq1 - freq2) < distancemin:
+                if np.abs(ampls_a[-1] - ampl1) < np.abs(ampls_b[-1] - ampl1):
+                    ampls_a.append(ampl1)
+                    freqs_a.append(freq1)
+                    ampls_b.append(ampl2)
+                    freqs_b.append(freq2)
+                else:
+                    ampls_a.append(ampl2)
+                    freqs_a.append(freq2)
+                    ampls_b.append(ampl1)
+                    freqs_b.append(freq1)
+            else:
+                if np.abs(freq1 - freqs_a[-1]) < np.abs(freq1 - freqs_b[-1]):
+                    freqs_a.append(freq1)
+                    ampls_a.append(ampl1)
+                    freqs_b.append(freq2)
+                    ampls_b.append(ampl2)
+                else:
+                    freqs_a.append(freq2)
+                    ampls_a.append(ampl2)
+                    freqs_b.append(freq1)
+                    ampls_b.append(ampl1)
 
-            # Calcul de la DSP pour cette fenêtre
-            dsp = compute_dsp(coefs_autoregressifs, order, freq_range, sigma2)
-            dsp_list.append(dsp / np.max(dsp))  # Normalisation
+            # Prédire la prochaine fréquence et vérifier la séparation correcte
+            if confidence<0.01 or freqs_b[-1]==0 or freqs_a[-1]==0:
+                not_separated_correctly_a.append(freqs_a[-1])
+                not_separated_correctly_b.append(freqs_b[-1])
+                n_not_separated_correctly += 1
+            else:
+                not_separated_correctly_a.append(-float('inf'))
+                not_separated_correctly_b.append(-float('inf'))
+
 
             # Afficher la progression
             if i % 10 == 0:
@@ -102,22 +140,32 @@ def separate_levdur(n_fenetre, data):
 
     # Création de l'image avec les coefficients AR
     img = plt.imshow(np.array(dsp_list).T, origin="lower", aspect="auto",
-                     cmap="viridis", interpolation='none')
+                     cmap="viridis", interpolation='none',  extent=[0, num_frames, 0, sample_rate / 2])
 
     # Ajout de la colorbar en associant l'objet `img`
-    plt.colorbar(img, label="Coefficients AR")
-    plt.title("Coefficients AR")
-    plt.xlabel("Temps (s)")
-    plt.ylabel("Coefficient AR")
+    plt.colorbar(img, label="Amplitude de la DSP")
+    plt.title("Estimation autoregressive de la DSP")
+    plt.xlabel("Numero de fenetre")
+    plt.ylabel("Estimation de la DSP")
+
+    # Ajouter les fréquences dominantes
+    plt.scatter(np.arange(num_frames), freqs_a, color="red", label="Fréquences A", s=5)
+    plt.scatter(np.arange(num_frames), freqs_b, color="blue", label="Fréquences B", s=5)
+    plt.scatter(np.arange(num_frames), not_separated_correctly_a, color="black", label="Fréquences A mal séparées", s=20, marker="x")
+    plt.scatter(np.arange(num_frames), not_separated_correctly_b, color="black", label="Fréquences B mal séparées", s=20, marker="x")
+    
+    plt.text(200, 1.1 * max(freqs_a[200], freqs_b[200]), str(n_not_separated_correctly) + " mal séparés", fontsize=12,
+             ha='center')
+
+    plt.legend()
 
     plt.show()
 
 
 # Paramètres
 window_size = 0.05  # Taille de la fenêtre en secondes
-hop_size = 0.01  # Décalage entre les fenêtres (en secondes)
-padding = 2**16
-distancemin = 1  # en Hz, espace minimal entre deux crêtes que l'on peut bien séparer
+hop_size = 0.015  # Décalage entre les fenêtres (en secondes)
+distancemin = 10  # en Hz, espace minimal entre deux crêtes que l'on peut bien séparer
 
 # conversion en nombre d'échantillons
 n_fenetre = int(window_size / T)
@@ -125,9 +173,6 @@ n_hop = int(hop_size / T)
 window = np.ones(n_fenetre)
 
 # Essai pour différentes fenêtres
-for window_size_ in [ 0.05, 0.07]:
+for window_size_ in [0.07]:
     n_fenetre = int(window_size_ / T)
     separate_levdur(n_fenetre, data)
-
-print('Pour la fenêtre rectangulaire:')
-print('La fenêtre à 0.01 est trop petite (on sépare trop de fréquences mal) et celle de 0.7 trop grande (la raie glissante est diffuse) mais avec les meilleurs résultats')

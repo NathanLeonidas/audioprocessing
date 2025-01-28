@@ -30,9 +30,6 @@ def find_peaks_simple(x, distance,padding,T,n_fft):
         if x[i] > x[i-1] and x[i] > x[i+1]:  # Comparaison avec voisins
             if x[i] > x[peak2] and np.abs(i-peak1)/(T*padding)>1/(T*n_fft):  # Filtre de hauteur
                 peak2 = i
-    
-    
-
     return np.array([peak1,peak2])
 
 
