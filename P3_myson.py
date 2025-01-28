@@ -9,7 +9,7 @@ from scipy.linalg import solve_toeplitz, toeplitz
 script_dir = os.path.dirname(os.path.abspath(__file__))  
 
 # Charger le fichier audio avec soundfile
-file = 'croisement4.wav'
+file = 'myson.wav'
 file_path = os.path.join(script_dir, 'audio_files', file)
 data, sample_rate = sf.read(file_path)
 T = 1 / sample_rate
@@ -153,13 +153,13 @@ def separate_levdur(n_fenetre, data):
     plt.ylabel("Estimation de la DSP")
 
     # Ajouter les fréquences dominantes
-    plt.scatter(np.arange(num_frames), freqs_a, color="red", label="Fréquences A", s=5)
-    plt.scatter(np.arange(num_frames), freqs_b, color="blue", label="Fréquences B", s=5)
-    plt.scatter(np.arange(num_frames), not_separated_correctly_a, color="black", label="Fréquences A mal séparées", s=20, marker="x")
-    plt.scatter(np.arange(num_frames), not_separated_correctly_b, color="black", label="Fréquences B mal séparées", s=20, marker="x")
+    #plt.scatter(np.arange(num_frames), freqs_a, color="red", label="Fréquences A", s=5)
+    #plt.scatter(np.arange(num_frames), freqs_b, color="blue", label="Fréquences B", s=5)
+    #plt.scatter(np.arange(num_frames), not_separated_correctly_a, color="black", label="Fréquences A mal séparées", s=20, marker="x")
+    #plt.scatter(np.arange(num_frames), not_separated_correctly_b, color="black", label="Fréquences B mal séparées", s=20, marker="x")
     
-    plt.text(200, 1.1 * max(freqs_a[200], freqs_b[200]), str(n_not_separated_correctly) +"/"+str(num_frames) +" problématiques", fontsize=12,
-             ha='center')
+    #plt.text(200, 1.1 * max(freqs_a[200], freqs_b[200]), str(n_not_separated_correctly) +"/"+str(num_frames) +" problématiques", fontsize=12,
+    #         ha='center')
 
     plt.legend()
 

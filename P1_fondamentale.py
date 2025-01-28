@@ -23,7 +23,7 @@ def naive_fft_fundamental(signal, samplerate, window_size, hop_size, treshold):
             # Trouver le premier pic maximal dans les fréquences
             peaks=[]
             for i in range(1,len(magnitude)-1):
-                if magnitude[i]>magnitude[i+1] and magnitude[i]>magnitude[i-1] and magnitude[i]>0.6*np.max(magnitude):
+                if magnitude[i]>magnitude[i+1] and magnitude[i]>magnitude[i-1] and magnitude[i]>0.4*np.max(magnitude):
                     peaks.append(i)
             fundamental_freq = frequencies[np.argmax(magnitude)]
             f0.append(frequencies[peaks[0]])
@@ -88,7 +88,7 @@ def autocorrelation_fundamental_with_filter(signal, samplerate, window_size, hop
     return times, f0_filtered
 
 def pourcent_bonne_classif(signal, target, error):
-    return sum(np.abs(signal-target)<error)/len(signal)*100
+    return str(sum(np.abs(signal-target)/np.array(target)<error/100))+"/"+str(len(signal))
 
 # Construire le chemin relatif vers le fichier audio
 script_dir = os.path.dirname(os.path.abspath(__file__))  # Répertoire du script
@@ -101,8 +101,8 @@ T = 1 / samplerate
 
 # Paramètres
 window_size = 0.02 # Taille de la fenêtre en secondes
-hop_size = 0.005  # Décalage entre les fenêtres (en secondes)
-treshold = 0.003
+hop_size = 0.01  # Décalage entre les fenêtres (en secondes)
+treshold = 0.003 # Seuil en dessous duquel c'est du bruit
 Fmin = librosa.note_to_hz('C3')
 Fmax = librosa.note_to_hz('C6')
 
@@ -132,8 +132,8 @@ f0_true = np.array(f0_true)
 plt.figure(figsize=(10, 6))
 plt.subplot(2,1,1)
 plt.plot(times, f0_fft, label='FFT naive', color='green')
-plt.plot(times, f0_autocorr, label='Autocorrélation', color='purple')
-plt.plot(times, f0_autocorr_vib, label='Autocorrélation filtrée passe bas', color='red')
+#plt.plot(times, f0_autocorr, label='Autocorrélation', color='purple')
+#plt.plot(times, f0_autocorr_vib, label='Autocorrélation filtrée passe bas', color='red')
 plt.plot(times, f0_true, label='Valeurs données', color='black')
 plt.title("Fréquence Fondamentale détectée dans la flute")
 plt.xlabel("Temps (s)")
@@ -149,11 +149,11 @@ print('erreur moyenne L2 de la méthode par autocorrelation:' + str(np.linalg.no
 print('erreur moyenne L1 de la méthode par autocorrelation filtrée:'+str(np.linalg.norm(f0_true - f0_autocorr_vib, ord=1)/n))
 print('erreur moyenne L2 de la méthode par autocorrelation filtrée:'+str(np.linalg.norm(f0_true - f0_autocorr_vib, ord=2)/np.sqrt(n)))
 print('\n')
-error=10
+error=5
 print('Avec une erreur de '+str(error)+'hz')
-print("taux bonne classif méthode naive FFT "+str(pourcent_bonne_classif(f0_fft,f0_true,error))+"%")
-print("taux bonne classif méthode autocorrelation "+str(pourcent_bonne_classif(f0_autocorr,f0_true,error))+"%")
-print("taux bonne classif méthode autocorrelation filtrée "+str(pourcent_bonne_classif(f0_autocorr_vib,f0_true,error))+"%")
+print("taux bonne classif méthode naive FFT "+str(pourcent_bonne_classif(f0_fft,f0_true,error)))
+print("taux bonne classif méthode autocorrelation "+str(pourcent_bonne_classif(f0_autocorr,f0_true,error)))
+print("taux bonne classif méthode autocorrelation filtrée "+str(pourcent_bonne_classif(f0_autocorr_vib,f0_true,error)))
 print('\n')
 print("On constate que la méthode d'autocorrélation est plus précise.")
 print('En effet, la méthode naive ne détecte parfois pas la fondamentale mais les harmoniques.')
@@ -193,8 +193,8 @@ f0_true = np.array(f0_true)
 # Affichage des résultats
 plt.subplot(2,1,2)
 plt.plot(times, f0_fft, label='FFT naive', color='green')
-plt.plot(times, f0_autocorr, label='Autocorrélation', color='purple')
-plt.plot(times, f0_autocorr_vib, label='Autocorrélation filtrée passe bas', color='red')
+#plt.plot(times, f0_autocorr, label='Autocorrélation', color='purple')
+#plt.plot(times, f0_autocorr_vib, label='Autocorrélation filtrée passe bas', color='red')
 plt.plot(times, f0_true, label='Valeurs données', color='black')
 plt.title("Fréquence Fondamentale détectée dans la voix")
 plt.xlabel("Temps (s)")
@@ -212,11 +212,10 @@ print('erreur moyenne L2 de la méthode par autocorrelation:'+str(np.linalg.norm
 print('erreur moyenne L1 de la méthode par autocorrelation filtrée:'+str(np.linalg.norm(f0_true - f0_autocorr_vib, ord=1)/n))
 print('erreur moyenne L2 de la méthode par autocorrelation filtrée:'+str(np.linalg.norm(f0_true - f0_autocorr_vib, ord=2)/np.sqrt(n)))
 print('\n')
-error=10
-print('Avec une erreur de '+str(error)+'hz')
-print("taux bonne classif méthode naive FFT "+str(pourcent_bonne_classif(f0_fft,f0_true,error))+"%")
-print("taux bonne classif méthode autocorrelation "+str(pourcent_bonne_classif(f0_autocorr,f0_true,error))+"%")
-print("taux bonne classif méthode autocorrelation filtrée "+str(pourcent_bonne_classif(f0_autocorr_vib,f0_true,error))+"%")
+print('Avec une erreur de '+str(error)+'%')
+print("taux bonne classif méthode naive FFT "+str(pourcent_bonne_classif(f0_fft,f0_true,error)))
+print("taux bonne classif méthode autocorrelation "+str(pourcent_bonne_classif(f0_autocorr,f0_true,error)))
+print("taux bonne classif méthode autocorrelation filtrée "+str(pourcent_bonne_classif(f0_autocorr_vib,f0_true,error)))
 print('\n')
 print("On constate que la méthode d'autocorrélation est plus précise.")
 print('En effet, la méthode naive a du mal a détecter les vibratos légers.')
