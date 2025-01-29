@@ -25,7 +25,6 @@ def naive_fft_fundamental(signal, samplerate, window_size, hop_size, treshold):
             for i in range(1,len(magnitude)-1):
                 if magnitude[i]>magnitude[i+1] and magnitude[i]>magnitude[i-1] and magnitude[i]>0.4*np.max(magnitude):
                     peaks.append(i)
-            fundamental_freq = frequencies[np.argmax(magnitude)]
             f0.append(frequencies[peaks[0]])
             
         else:
