@@ -1,0 +1,8 @@
+numpy
+matplotlib
+soundfile
+scipy
+pandas
+librosa
+PyWavelets
+spectrum

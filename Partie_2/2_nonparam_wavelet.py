@@ -12,7 +12,8 @@ file_path = os.path.join(script_dir, 'audio_files', 'croisement.wav')
 y, sr = librosa.load(file_path, sr=None)
 
 # Définir les échelles des ondelettes
-scales = np.logspace(0.1, 2.5, num=1000)  # Logarithmique entre 10 et 1000
+scales = np.exp(np.linspace(np.log(10**0.1), np.log(10**2.5), num=1000))
+
 
 # Définir explicitement l'ondelette Complex Morlet avec un facteur de qualité
 wavelet = 'cmor2.5-3.0'  # Facteurs ajustables : cmorB-C où B=1.5 (temps), C=1.0 (fréquence)
@@ -116,13 +117,3 @@ plt.legend()
 plt.grid()
 plt.show()
 
-# Affichage des amplitudes associées
-plt.figure(figsize=(10, 6))
-plt.plot(time_axis, amp1, label="Amplitude Fréquence 1", color="blue")
-plt.plot(time_axis, amp2, label="Amplitude Fréquence 2", color="red")
-plt.xlabel("Temps (s)")
-plt.ylabel("Amplitude")
-plt.title("Amplitudes des deux sinusoïdes en fonction du temps")
-plt.legend()
-plt.grid()
-plt.show()
