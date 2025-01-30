@@ -6,7 +6,7 @@ import os
 from scipy.ndimage import gaussian_filter1d
 
 # Charger le signal audio
-script_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 file_path = os.path.join(script_dir, 'audio_files', 'croisement.wav')
 y, sr = librosa.load(file_path, sr=None)
 

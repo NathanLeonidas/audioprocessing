@@ -5,11 +5,10 @@ import os
 from scipy.signal import find_peaks
 from scipy.linalg import solve_toeplitz, toeplitz
 
-# Construire le chemin relatif vers le fichier audio
-script_dir = os.path.dirname(os.path.abspath(__file__))  
 
-# Charger le fichier audio avec soundfile
+# Choisir le fichier a analyser ICI
 file = 'croisement4.wav'
+script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 file_path = os.path.join(script_dir, 'audio_files', file)
 data, sample_rate = sf.read(file_path)
 T = 1 / sample_rate

@@ -7,14 +7,14 @@ import os
 from scipy.ndimage import gaussian_filter1d
 
 # Charger le signal audio
-script_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 file_path = os.path.join(script_dir, 'audio_files', 'croisement.wav')
 y, sr = librosa.load(file_path, sr=None)
 
 # Paramètres pour le découpage
 frame_size = 2**10  # Taille des fenêtres
 hop_size = int(sr * 0.01)  # Décalage entre les fenêtres (10 ms ici)
-order =  2**9-1 # Ordre du modèle Prony
+order =  150 # Ordre du modèle Prony
 n_fft = 2**13  # Taille FFT pour PSD
 
 # Découper le signal en fenêtres glissantes

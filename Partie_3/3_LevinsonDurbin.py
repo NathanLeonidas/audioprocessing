@@ -6,7 +6,7 @@ from scipy.signal import find_peaks
 from scipy.linalg import solve_toeplitz, toeplitz
 
 # Construire le chemin relatif vers le fichier audio
-script_dir = os.path.dirname(os.path.abspath(__file__))  
+script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Charger le fichier audio avec soundfile
 file = 'myson.wav'
