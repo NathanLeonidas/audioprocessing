@@ -4,12 +4,12 @@ Ce projet implémente différentes méthodes d'analyse et de traitement du signa
 
 ## Structure du Projet
 
-AUDIOPROCESSING/
+AUDIOPROCESSING/   
 │── audio_files/ - Contient les fichiers audio à analyser  
 │── documentation_cours/ - Documents et fichiers de référence  
 │── images/ - Quelques graphiques et visualisations générés  
 │── Partie_1/ - Recherche de la fondamentale  
-│── Partie_2/ - Séparation de sinusoïdes
+│── Partie_2/ - Séparation de sinusoïdes    
 │── Partie_3/ - Etude de myson  
 │── requirements.txt - Liste des dépendances Python  
 │── README.md - Documentation du projet  
