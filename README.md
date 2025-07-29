@@ -43,7 +43,4 @@ AUDIOPROCESSING/
 
 Ce projet repose sur plusieurs bibliothèques Python : NumPy, Librosa, Matplotlib, SciPy, PyWavelets, Soundfile.
 
----
 
-Auteurs : Paul LEMAIRE, Nathan Lewy 
-Date de mise à jour : 30 janvier 2025  
